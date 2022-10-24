@@ -20,6 +20,7 @@ public class Fire extends Actor{
 
     public Fire(int xPos, int yPos, World world) {
         super(xPos, yPos, world);
+        setFrameOffset((int)(Math.random() * sprite.length));
     }
 
     /**

@@ -119,6 +119,10 @@ public class Scenario {
                     case "Wall":
                         wallAt(loc);
                         break;
+
+                    case "ZombieGoal":
+                        goalAt(loc);
+                        break;
                 }
 
 //                else if (className.equals("MyZombie")) {
@@ -224,6 +228,26 @@ public class Scenario {
 
     private static Wall wallAt(Location loc) {
         return new Wall(loc.x, loc.y, loc.world);
+    }
+
+
+    private static ZombieGoal goalAt(Location loc) {
+        ZombieGoal goal = new ZombieGoal (loc.x, loc.y, loc.world);
+
+        // Perform any method calls spec'd for this goal
+        if (loc.calls != null) {
+            for (String[] call : loc.calls) {
+                Class[] params = {int.class};
+                try {
+                    Method m = ZombieGoal.class.getMethod(call[0], params);
+                    m.invoke(goal, Integer.parseInt(call[1]));
+                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    System.err.println("method call fire." + call[0] + " failed. " + e.getMessage());
+                }
+            }
+        }
+
+        return goal;
     }
 
     private static class Location {

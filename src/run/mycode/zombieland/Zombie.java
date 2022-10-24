@@ -6,19 +6,25 @@ class Zombie {
     Actor zombie;
 
     private boolean isUndead;
+    private boolean hasWon;
 
     public Zombie(int xPos, int yPos, int dir, World world) {
         zombie = new ZombieActor(xPos, yPos, dir, world, this);
         isUndead = true;
+        hasWon = false;
     }
 
     public void die() {
         isUndead = false;
     }
 
-    private boolean isUndead() {
+    public boolean isUndead() {
         return isUndead;
     }
+
+    public void win() { hasWon = true; }
+
+    public boolean hasWon() { return hasWon; }
 
     static class ZombieActor extends Actor {
 

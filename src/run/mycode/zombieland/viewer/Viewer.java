@@ -4,7 +4,6 @@ import run.mycode.zombieland.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
@@ -74,7 +73,7 @@ public class Viewer extends JFrame {
             }
         });
 
-        timer = new Timer(1000 / 15, (e) -> {
+        timer = new Timer(1000 / 10, (e) -> {
             currentWorld.animate();
             worldView.repaint();
         });

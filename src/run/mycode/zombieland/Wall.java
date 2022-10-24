@@ -10,6 +10,7 @@ public class Wall extends Actor {
         super(xPos, yPos, world);
         setImage(sprite);
     }
+
     /**
      * Walls don't do much.
      */

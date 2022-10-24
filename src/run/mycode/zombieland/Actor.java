@@ -10,6 +10,7 @@ abstract class Actor {
     private int y;
 
     private int frame;
+    private int frameOffset = 0;
 
     private final World world;
 
@@ -98,7 +99,7 @@ abstract class Actor {
      * @return the frame number in the range [0..mod)
      */
     int getFrameNo(int mod) {
-        return frame % mod;
+        return (frame + frameOffset) % mod;
     }
 
     /**
@@ -106,5 +107,13 @@ abstract class Actor {
      */
     void resetFrameNo() {
         frame = 0;
+        frameOffset = 0;
+    }
+
+    /**
+     * Set the frame offset for the first animation frame
+     */
+    void setFrameOffset(int offset) {
+        frameOffset = offset;
     }
 }
