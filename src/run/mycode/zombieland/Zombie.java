@@ -3,6 +3,24 @@ package run.mycode.zombieland;
 import java.awt.*;
 
 class Zombie {
+    private static final Image[][] sprite = new Image[5][4];
+
+    private static final String[] dirs = {"right", "down", "left", "up"};
+
+    static {
+        for (int d = 0; d < dirs.length; d++) {
+            for (int i = 0; i < sprite[d].length; i++) {
+                sprite[d][i] = ImageLoader.loadResourceImage("/images/zombie-" + dirs[d] + "-" + i + ".png");
+            }
+        }
+
+        sprite[dirs.length] = new Image[4];
+
+        for (int i = 0; i < sprite[dirs.length].length; i++) {
+            sprite[dirs.length][0] = ImageLoader.loadResourceImage(("/images/zombie-dead-" + i + ".png"));
+        }
+    }
+
     Actor zombie;
 
     private boolean isUndead;
@@ -33,29 +51,11 @@ class Zombie {
 
     public boolean hasWon() { return hasWon; }
 
-    static class ZombieActor extends Actor {
+    class ZombieActor extends Actor {
 
         private final Zombie zombie;
 
         private int dir;
-
-        private static final Image[][] sprite = new Image[5][4];
-
-        private static final String[] dirs = {"right", "down", "left", "up"};
-
-        static {
-            for (int d = 0; d < dirs.length; d++) {
-                for (int i = 0; i < sprite[d].length; i++) {
-                    sprite[d][i] = ImageLoader.loadResourceImage("/images/zombie-" + dirs[d] + "-" + i + ".png");
-                }
-            }
-
-            sprite[dirs.length] = new Image[4];
-
-            for (int i = 0; i < sprite[dirs.length].length; i++) {
-                sprite[dirs.length][0] = ImageLoader.loadResourceImage(("/images/zombie-dead-" + i + ".png"));
-            }
-        }
 
         public ZombieActor(int xPos, int yPos, int dir, World w, Zombie zombie) {
             super(xPos, yPos, w);
@@ -85,15 +85,23 @@ class Zombie {
 
         @Override
         public Image getImage() {
+            Image img;
+
             if (zombie.hasWon()) {
-                return sprite[1][1];
+                img = sprite[1][1];
             }
             else if (!zombie.isUndead()){ /* !undead == dead */
-                return sprite[sprite.length - 1][dir];
+                img = sprite[sprite.length - 1][dir];
             }
             else {
-                return sprite[dir][getFrameNo(sprite[dir].length)];
+                img = sprite[dir][getFrameNo(sprite[dir].length)];
             }
+
+            if (numBrains > 1) {
+                img = drawNumber(img, numBrains);
+            }
+
+            return img;
         }
 
     }

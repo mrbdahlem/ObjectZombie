@@ -24,6 +24,10 @@ public class Brain extends Actor {
 
     @Override
     public Image getImage() {
+        if (numBrains == 1) {
+            return sprite;
+        }
+
         Image img = numSprite.get(numBrains);
         if (img != null) {
             return img;
@@ -34,29 +38,41 @@ public class Brain extends Actor {
     }
 
     private static Image makeImage(int numBrains) {
-        Image img = new BufferedImage(sprite.getWidth(null), sprite.getHeight(null),
-                BufferedImage.TYPE_INT_ARGB);
+        Image img = drawNumber(sprite, numBrains);
+        numSprite.put(numBrains, img);
+        return img;
+    }
 
-        Graphics g = img.getGraphics();
-        g.drawImage(sprite, 0, 0, null);
+    static Image drawNumber(Image img, int num) {
+        final int width = img.getWidth(null);
+        final int height = img.getHeight(null);
+        BufferedImage numSprite = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
-        if (numBrains > 1) {
-            Font font = g.getFont();
-            font = font.deriveFont(Font.BOLD, 10.0f);
-            g.setFont(font);
-            FontMetrics fm = g.getFontMetrics();
+        Graphics g = numSprite.getGraphics();
+        g.drawImage(img, 0, 0, null);
 
-            String count = "" + numBrains;
-            Rectangle2D rect = fm.getStringBounds((count), g);
-            g.setColor(Color.BLACK);
-            g.fillRect(0, 0, (int) rect.getWidth() + 2, (int) rect.getHeight() + 2);
-            g.setColor(Color.WHITE);
-            g.drawString(count, 1,  fm.getHeight() - fm.getDescent() - 1);
+        Font font = g.getFont();
+        font = font.deriveFont(Font.BOLD, 20.0f);
+        g.setFont(font);
+        FontMetrics fm = g.getFontMetrics();
+
+        String count = "" + num;
+        Rectangle2D rect = fm.getStringBounds((count), g);
+        g.setColor(Color.BLACK);
+
+        final int x = (int)((width - rect.getWidth()) / 2);
+        final int y = (int)((height - rect.getHeight()) / 2);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                g.drawString(count, x + dx,  y + dy + fm.getHeight() - fm.getDescent());
+            }
         }
+
+        g.setColor(Color.WHITE);
+        g.drawString(count, x, y + fm.getHeight() - fm.getDescent());
 
         g.dispose();
 
-        numSprite.put(numBrains, img);
-        return img;
+        return numSprite;
     }
 }

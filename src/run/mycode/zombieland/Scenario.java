@@ -18,14 +18,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Scenario {
-    List<ZombieLand> worlds = new ArrayList<>();
+    private final List<Context> worlds = new ArrayList<>();
 
     private Scenario() {
 
     }
 
-    private void addWorld(ZombieLand world) {
-        worlds.add(world);
+    private void addWorld(ZombieLand world, Objective objective) {
+        worlds.add(new Context(world, objective));
     }
 
     /**
@@ -41,7 +41,7 @@ public class Scenario {
      * @return the requested world from this scenario
      */
     public ZombieLand getWorld(int num) {
-        return worlds.get(num);
+        return worlds.get(num).world;
     }
 
     public static Scenario load(File file) throws IOException {
@@ -53,12 +53,35 @@ public class Scenario {
             Document doc = db.parse(file);
             doc.getDocumentElement().normalize();
             // Get a handle to the root of the world description
-            Element document = doc.getDocumentElement();
-            NodeList worlds = document.getElementsByTagName("world");
+            Element scenarioRoot = doc.getDocumentElement();
 
+
+            String zombieClass = scenarioRoot.getAttribute("zombieclass");
+            if (zombieClass.length() == 0) {
+                zombieClass = "Zombie";
+            }
+
+            NodeList worlds = scenarioRoot.getElementsByTagName("world");
             for (int i = 0; i < worlds.getLength(); i++) {
-                scenario.addWorld(loadWorld((Element)worlds.item(i), file.getName()));
+                Element world = (Element)worlds.item(i);
+                // Set the world width and height
+                int width = Integer.parseInt(world.getAttribute("width"));
+                int height = Integer.parseInt(world.getAttribute("height"));
 
+                String name = world.getAttribute("name");
+                if (name.length() == 0) {
+                    name = file.getName();
+                }
+
+                final ZombieLand z = new ZombieLand(width, height, name);
+                final Node initial = world.getElementsByTagName("initial").item(0);
+                loadState(z, initial, zombieClass);
+
+                final Objective o = new Objective();
+                final Node objective = world.getElementsByTagName("objective").item(0);
+                loadState(o, objective, zombieClass);
+
+                scenario.addWorld(z, o);
             }
         } catch (ParserConfigurationException | SAXException e) {
             System.err.println("Could not load file " + file.getName() + ": " + e.getMessage());
@@ -67,41 +90,14 @@ public class Scenario {
         return scenario;
     }
 
-    private static ZombieLand loadWorld(Element root, String defaultName) {
-        // Set the world width and height
-        int width = Integer.parseInt(root.getAttribute("width"));
-        int height = Integer.parseInt(root.getAttribute("height"));
-
-        String name = root.getAttribute("name");
-        if (name.length() == 0) {
-            name = defaultName;
-        }
-
-        final ZombieLand zl = new ZombieLand(width, height, name);
-
-        // Get handles to the initial and objective description nodes
-        Node initial = root.getElementsByTagName("initial").item(0);
-        Node objective = root.getElementsByTagName("objective").item(0);
-
-        loadInitialState(zl, initial);
-        loadGoalState(zl, objective);
-
-        return zl;
-    }
-
-    private static void loadInitialState(ZombieLand zl, Node initial) {
-//        ClassLoader cl = Scenario.class.getClassLoader();
-
-        NodeList initialObjects = ((Element)initial).getElementsByTagName("object");
+    private static void loadState(World zl, Node stateNode, String zombieClass) {
+        NodeList initialObjects = ((Element)stateNode).getElementsByTagName("object");
         for (int i = 0; i < initialObjects.getLength(); i++) {
             // Get the object description
             Element obj = (Element) initialObjects.item(i);
 
             // Determine the classname that describes the object
             String className = obj.getAttribute("classname");
-
-            // Make sure the class is loaded into the Java runtime
-//            Class objClass = cl.loadClass(className);
 
             // Determine where the class instances are located
             NodeList locations = obj.getElementsByTagName("location");
@@ -132,39 +128,17 @@ public class Scenario {
                     case "MyZombie":
                     case "Zombie":
                         Element pos = (Element)locations.item(j);
-                        String zombieClass = pos.getAttribute("classname");
-                        if (zombieClass.length() == 0) {
-                            zombieClass = "Zombie";
-                        }
+
                         int numBrains = 0;
                         if (pos.hasAttribute("brains")) {
                             numBrains = Integer.parseInt(pos.getAttribute("brains"));
                         }
+
                         zombieAt(zombieClass, loc, numBrains);
                         break;
                 }
-//                else {
-//                    // Create instances at this location
-//                    Constructor constructor = objClass.getConstructor();
-//                    for (; count > 0; count--) {
-//                        Actor a = (Actor) constructor.newInstance();
-//                        zl.addObject(a, x, y);
-//                        a.setRotation(dir);
-//
-//                        if (calls != null) {
-//                            for (String[] call : calls) {
-//                                Class[] params = {int.class};
-//                                Method m = objClass.getMethod(call[0], params);
-//                                m.invoke(a, Integer.parseInt(call[1]));
-//                            }
-//                        }
-//                    }
-//                }
             }
         }
-    }
-
-    private static void loadGoalState(ZombieLand zl, Node objective) {
     }
 
     private static Brain brainAt(Location loc) {
@@ -250,7 +224,7 @@ public class Scenario {
         World world;
 
 
-        public static Location from(Node item, ZombieLand zl) {
+        public static Location from(Node item, World zl) {
             Location loc = new Location();
 
             loc.world = zl;
@@ -289,5 +263,27 @@ public class Scenario {
 
             return loc;
         }
+    }
+
+    private static class Context {
+        ZombieLand world;
+        Objective objective;
+
+        public Context(ZombieLand world, Objective objective) {
+            this.world = world;
+            this.objective = objective;
+        }
+    }
+
+    private static class Objective extends World {
+        public Objective() {
+            super();
+        }
+
+        @Override
+        public void act() { /* Do nothing */ }
+
+        @Override
+        public void animate() { /* Do nothing */ }
     }
 }

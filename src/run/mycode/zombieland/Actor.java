@@ -1,6 +1,8 @@
 package run.mycode.zombieland;
 
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 
 /**
  * A base class for all objects appearing in a World in ZombieLand
@@ -115,5 +117,29 @@ abstract class Actor {
      */
     void setFrameOffset(int offset) {
         frameOffset = offset;
+    }
+
+    static Image drawNumber(Image img, int num) {
+        BufferedImage numSprite = new BufferedImage(img.getWidth(null), img.getHeight(null),
+                BufferedImage.TYPE_INT_ARGB);
+
+        Graphics g = numSprite.getGraphics();
+        g.drawImage(img, 0, 0, null);
+
+        Font font = g.getFont();
+        font = font.deriveFont(Font.BOLD, 10.0f);
+        g.setFont(font);
+        FontMetrics fm = g.getFontMetrics();
+
+        String count = "" + num;
+        Rectangle2D rect = fm.getStringBounds((count), g);
+        g.setColor(Color.BLACK);
+        g.fillRect(1, 1, (int) rect.getWidth() + 2, (int) rect.getHeight() + 2);
+        g.setColor(Color.WHITE);
+        g.drawString(count, 2,  1 + fm.getHeight() - fm.getDescent());
+
+        g.dispose();
+
+        return numSprite;
     }
 }
