@@ -11,6 +11,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -123,48 +124,26 @@ public class Scenario {
                     case "ZombieGoal":
                         goalAt(loc);
                         break;
-                }
 
-//                else if (className.equals("MyZombie")) {
-//                    Zombie z = zombieAt(loc, locations.item(j), zl);
-//
-//                    // Determine how many brains this zombie is carrying
-//                    int numBrains = 0;
-//                    if (pos.hasAttribute("brains")) {
-//                        numBrains = Integer.parseInt(pos.getAttribute("brains"));
-//                    }
-//
-//                    // Create instances at this location
-//                    Constructor constructor = objClass.getConstructor();
-//                    for (; count > 0; count--) {
-//                        Zombie z = (Zombie) constructor.newInstance();
-//
-//                        // Give the zombie some brains
-//                        if (numBrains > 0) {
-//                            try {
-//                                Field nb = Zombie.class.getDeclaredField("numBrains");
-//                                nb.setAccessible(true);
-//                                nb.set(z, numBrains);
-//                                nb.setAccessible(false);
-//                            } catch (Exception e) {
-//                            }
-//                        }
-//
-//                        // Add the zombie and face it the correct direction
-//                        zl.addObject(z, x, y);
-//                        z.setRotation(dir);
-//                        z.showAnimationFrame();
-//
-//                        // Make any setup calls
-//                        if (calls != null) {
-//                            for (String[] call : calls) {
-//                                Class[] params = {int.class};
-//                                Method m = objClass.getMethod(call[0], params);
-//                                m.invoke(z, Integer.parseInt(call[1]));
-//                            }
-//                        }
-//                    }
-//                } else {
+//                    case "Bucket":
+//                        bucketAt(loc);
+//                        break;
+
+                    case "MyZombie":
+                    case "Zombie":
+                        Element pos = (Element)locations.item(j);
+                        String zombieClass = pos.getAttribute("classname");
+                        if (zombieClass.length() == 0) {
+                            zombieClass = "Zombie";
+                        }
+                        int numBrains = 0;
+                        if (pos.hasAttribute("brains")) {
+                            numBrains = Integer.parseInt(pos.getAttribute("brains"));
+                        }
+                        zombieAt(zombieClass, loc, numBrains);
+                        break;
+                }
+//                else {
 //                    // Create instances at this location
 //                    Constructor constructor = objClass.getConstructor();
 //                    for (; count > 0; count--) {
@@ -191,37 +170,32 @@ public class Scenario {
     private static Brain brainAt(Location loc) {
         Brain brain = new Brain(loc.x, loc.y, loc.count, loc.world);
 
-        // Perform any method calls spec'd for this brain stack
+        // Perform any method calls specified for this brain stack
+        makeCalls(brain, loc);
+
+        return brain;
+    }
+
+    @SuppressWarnings({"rawtypes"})
+    private static void makeCalls(Object instance, Location loc) {
         if (loc.calls != null) {
             for (String[] call : loc.calls) {
                 Class[] params = {int.class};
                 try {
-                    Method m = Brain.class.getMethod(call[0], params);
-                    m.invoke(brain, Integer.parseInt(call[1]));
+                    Method m = instance.getClass().getMethod(call[0], params);
+                    m.invoke(instance, Integer.parseInt(call[1]));
                 } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    System.err.println("method call brain." + call[0] + " failed. " + e.getMessage());
+                    System.err.println("method call " + instance.getClass().getName() + "." + call[0] + " failed. " + e.getMessage());
                 }
             }
         }
-
-        return brain;
     }
 
     private static Fire fireAt(Location loc) {
         Fire fire = new Fire(loc.x, loc.y, loc.world);
 
-        // Perform any method calls spec'd for this fire
-        if (loc.calls != null) {
-            for (String[] call : loc.calls) {
-                Class[] params = {int.class};
-                try {
-                    Method m = Fire.class.getMethod(call[0], params);
-                    m.invoke(fire, Integer.parseInt(call[1]));
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    System.err.println("method call fire." + call[0] + " failed. " + e.getMessage());
-                }
-            }
-        }
+        // Perform any method calls specified for this fire
+        makeCalls(fire, loc);
 
         return fire;
     }
@@ -230,24 +204,40 @@ public class Scenario {
         return new Wall(loc.x, loc.y, loc.world);
     }
 
-
     private static ZombieGoal goalAt(Location loc) {
         ZombieGoal goal = new ZombieGoal (loc.x, loc.y, loc.world);
 
-        // Perform any method calls spec'd for this goal
-        if (loc.calls != null) {
-            for (String[] call : loc.calls) {
-                Class[] params = {int.class};
-                try {
-                    Method m = ZombieGoal.class.getMethod(call[0], params);
-                    m.invoke(goal, Integer.parseInt(call[1]));
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    System.err.println("method call fire." + call[0] + " failed. " + e.getMessage());
-                }
-            }
-        }
+        // Perform any method calls specified for this goal
+        makeCalls(goal, loc);
 
         return goal;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Zombie zombieAt(String zombieClass, Location loc, int numBrains) {
+        if (zombieClass.equals("Zombie")) {
+            zombieClass = "run.mycode.zombieland.Zombie";
+        }
+
+        Zombie z;
+
+        try {
+            ClassLoader cl = Scenario.class.getClassLoader();
+
+            // Make sure the proper Zombie subclass is loaded into the Java runtime
+            Class objClass = cl.loadClass(zombieClass);
+            // Create an instance of the class at this location
+            Constructor constructor = objClass.getDeclaredConstructor(int.class, int.class, int.class, int.class, World.class);
+            z = (Zombie) constructor.newInstance(loc.x, loc.y, loc.dir, numBrains, loc.world);
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
+                 ClassNotFoundException e) {
+            throw new RuntimeException("Cannot make Zombie at (" + loc.x + "," + loc.y + ")", e);
+        }
+
+        // Perform any method calls specified for this goal
+        makeCalls(z, loc);
+
+        return z;
     }
 
     private static class Location {

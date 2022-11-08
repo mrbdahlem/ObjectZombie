@@ -8,10 +8,17 @@ class Zombie {
     private boolean isUndead;
     private boolean hasWon;
 
+    private int numBrains;
+
     public Zombie(int xPos, int yPos, int dir, World world) {
         zombie = new ZombieActor(xPos, yPos, dir, world, this);
         isUndead = true;
         hasWon = false;
+    }
+
+    Zombie(int xPos, int yPos, int dir, int numBrains, World world) {
+        this(xPos, yPos, dir, world);
+        this.numBrains = numBrains;
     }
 
     public void die() {
@@ -43,8 +50,11 @@ class Zombie {
                 }
             }
 
-            sprite[dirs.length] = new Image[1];
-            sprite[dirs.length][0] = ImageLoader.loadResourceImage(("/images/zombie-dead.png"));
+            sprite[dirs.length] = new Image[4];
+
+            for (int i = 0; i < sprite[dirs.length].length; i++) {
+                sprite[dirs.length][0] = ImageLoader.loadResourceImage(("/images/zombie-dead-" + i + ".png"));
+            }
         }
 
         public ZombieActor(int xPos, int yPos, int dir, World w, Zombie zombie) {
@@ -56,16 +66,6 @@ class Zombie {
         @Override
         public void act() {
 
-        }
-
-        @Override
-        public Image getImage() {
-            if (!zombie.isUndead()) {
-                return sprite[sprite.length - 1][0];
-            }
-            else {
-                return sprite[dir][getFrameNo(sprite[dir].length)];
-            }
         }
 
         public Zombie getZombie() {
@@ -82,5 +82,19 @@ class Zombie {
                 dir = dirs.length - dir;
             }
         }
+
+        @Override
+        public Image getImage() {
+            if (zombie.hasWon()) {
+                return sprite[1][1];
+            }
+            else if (!zombie.isUndead()){ /* !undead == dead */
+                return sprite[sprite.length - 1][dir];
+            }
+            else {
+                return sprite[dir][getFrameNo(sprite[dir].length)];
+            }
+        }
+
     }
 }
