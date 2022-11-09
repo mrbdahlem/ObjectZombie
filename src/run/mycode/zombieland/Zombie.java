@@ -1,5 +1,7 @@
 package run.mycode.zombieland;
 
+import run.mycode.zombieland.exceptions.ZombieFallOffWorldException;
+
 import java.awt.*;
 
 class Zombie {
@@ -21,19 +23,21 @@ class Zombie {
         }
     }
 
-    Actor zombie;
+    private final Actor zombie;
 
     private boolean isUndead;
     private boolean hasWon;
 
     private int numBrains;
 
+    @SuppressWarnings("unused")
     public Zombie(int xPos, int yPos, int dir, World world) {
         zombie = new ZombieActor(xPos, yPos, dir, world, this);
         isUndead = true;
         hasWon = false;
     }
 
+    @SuppressWarnings("unused")
     Zombie(int xPos, int yPos, int dir, int numBrains, World world) {
         this(xPos, yPos, dir, world);
         this.numBrains = numBrains;
@@ -50,8 +54,6 @@ class Zombie {
     public void win() { hasWon = true; }
 
     public boolean hasWon() { return hasWon; }
-
-    public boolean hasWon(int ignored) { return hasWon; }
 
     class ZombieActor extends Actor {
 
@@ -71,18 +73,28 @@ class Zombie {
         }
 
         public Zombie getZombie() {
-            return zombie;
+            return this.zombie;
         }
 
         public void turnRight() {
             dir = (dir + 1) % dirs.length;
         }
 
-        public void turnLeft() {
-            dir = dir - 1;
-            while (dir < 0) {
-                dir = dirs.length - dir;
+        public void move() {
+            //dirs = {"right", "down", "left", "up"}
+            int[] dx = {1, 0, -1, 0};
+            int[] dy = {0, 1, 0, -1};
+
+            int newx = getX() + dx[dir];
+            int newy = getY() + dy[dir];
+
+            World w = getWorld();
+
+            if (newx < 0 || newx >= w.getWidth() ||
+                    newy < 0 || newy >= w.getHeight()) {
+                throw new ZombieFallOffWorldException();
             }
+
         }
 
         @Override

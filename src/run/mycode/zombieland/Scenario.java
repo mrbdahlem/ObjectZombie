@@ -43,6 +43,13 @@ public class Scenario {
         return worlds.get(num).world;
     }
 
+    /**
+     * Retrieve a world's objective from this scenario
+     * @param num The world to get a reference to [0..numWorlds)
+     * @return the requested objective from this scenario
+     */
+    public Objective getObjective(int num) { return worlds.get(num).objective; }
+
     public static Scenario load(File file) throws IOException {
         Scenario scenario = new Scenario();
 
@@ -141,7 +148,7 @@ public class Scenario {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static void zombieAt(String zombieClass, int numBrains, Location loc,  ZombieLand world) {
+    private static void zombieAt(String zombieClass, int numBrains, Location loc, ZombieLand world) {
         if (zombieClass.equals("Zombie")) {
             zombieClass = "run.mycode.zombieland.Zombie";
         }
@@ -200,14 +207,4 @@ public class Scenario {
         }
     }
 
-    private static class Objective extends ZombieLand {
-
-        public Objective(int width, int height, String name) {
-            super(width, height, name);
-        }
-
-        @Override
-        public void act() { /* Do nothing */ }
-
-    }
 }

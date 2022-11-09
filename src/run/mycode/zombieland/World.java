@@ -14,6 +14,7 @@ abstract class World {
 
     private int xSize;
     private int ySize;
+
     private int cellSize;
 
     public World() {
@@ -146,6 +147,14 @@ abstract class World {
      */
     public int getFullHeight() {
         return ySize * cellSize;
+    }
+
+    /**
+     * Retrieve the size of one tile in the world. Each tile is a square with this width and height
+     * @return the size of one world tile in pixels
+     */
+    public int getCellSize() {
+        return cellSize;
     }
 
     /**
