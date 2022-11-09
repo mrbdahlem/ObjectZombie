@@ -37,6 +37,10 @@ public class Bucket extends Actor {
             }
         }
 
+        if (canPush) {
+            setPosition(newx, newy);
+        }
+
         return canPush;
     }
 }
