@@ -1,18 +1,19 @@
 package run.mycode.zombieland;
 
+import run.mycode.zombieland.exceptions.BucketStuckException;
 import run.mycode.zombieland.exceptions.ZombieFallOffWorldException;
+import run.mycode.zombieland.exceptions.ZombieHitWallException;
 
 import java.awt.*;
 
 class Zombie {
     private static final Image[][] sprite = new Image[5][4];
 
-    private static final String[] dirs = {"right", "down", "left", "up"};
-
     static {
+        Dir[] dirs = Dir.values();
         for (int d = 0; d < dirs.length; d++) {
             for (int i = 0; i < sprite[d].length; i++) {
-                sprite[d][i] = ImageLoader.loadResourceImage("/images/zombie-" + dirs[d] + "-" + i + ".png");
+                sprite[d][i] = ImageLoader.loadResourceImage("/images/zombie-" + dirs[d].toString() + "-" + i + ".png");
             }
         }
 
@@ -23,7 +24,7 @@ class Zombie {
         }
     }
 
-    private final Actor zombie;
+    private final ZombieActor zombie;
 
     private boolean isUndead;
     private boolean hasWon;
@@ -32,7 +33,7 @@ class Zombie {
 
     @SuppressWarnings("unused")
     public Zombie(int xPos, int yPos, int dir, World world) {
-        zombie = new ZombieActor(xPos, yPos, dir, world, this);
+        zombie = new ZombieActor(xPos, yPos, Dir.values()[dir], world, this);
         isUndead = true;
         hasWon = false;
     }
@@ -55,13 +56,43 @@ class Zombie {
 
     public boolean hasWon() { return hasWon; }
 
+    public void turnRight() {
+        zombie.dir = zombie.dir.toRight();
+    }
+
+    public void move() {
+        final int newx = zombie.getX() + zombie.dir.dx();
+        final int newy = zombie.getY() + zombie.dir.dy();
+
+        final World w = zombie.getWorld();
+
+        if (newx < 0 || newx >= w.getWidth() ||
+                newy < 0 || newy >= w.getHeight()) {
+            throw new ZombieFallOffWorldException();
+        }
+
+        for (Actor a : w.getActorsAt(newx, newy)) {
+            if (a instanceof Wall) {
+                throw new ZombieHitWallException();
+            }
+
+            if (a instanceof Bucket) {
+                if (!((Bucket)a).push(zombie.dir)) {
+                    throw new BucketStuckException();
+                }
+            }
+        }
+
+        zombie.setPosition(newx, newy);
+    }
+
     class ZombieActor extends Actor {
 
         private final Zombie zombie;
 
-        private int dir;
+        private Dir dir;
 
-        public ZombieActor(int xPos, int yPos, int dir, World w, Zombie zombie) {
+        public ZombieActor(int xPos, int yPos, Dir dir, World w, Zombie zombie) {
             super(xPos, yPos, w);
             this.zombie = zombie;
             this.dir = dir;
@@ -76,39 +107,19 @@ class Zombie {
             return this.zombie;
         }
 
-        public void turnRight() {
-            dir = (dir + 1) % dirs.length;
-        }
-
-        public void move() {
-            //dirs = {"right", "down", "left", "up"}
-            int[] dx = {1, 0, -1, 0};
-            int[] dy = {0, 1, 0, -1};
-
-            int newx = getX() + dx[dir];
-            int newy = getY() + dy[dir];
-
-            World w = getWorld();
-
-            if (newx < 0 || newx >= w.getWidth() ||
-                    newy < 0 || newy >= w.getHeight()) {
-                throw new ZombieFallOffWorldException();
-            }
-
-        }
-
         @Override
         public Image getImage() {
             Image img;
 
+            int dirnum = dir.ordinal();
             if (zombie.hasWon()) {
                 img = sprite[1][1];
             }
             else if (!zombie.isUndead()){ /* !undead == dead */
-                img = sprite[sprite.length - 1][dir];
+                img = sprite[sprite.length - 1][dirnum];
             }
             else {
-                img = sprite[dir][getFrameNo(sprite[dir].length)];
+                img = sprite[dirnum][getFrameNo(sprite[dirnum].length)];
             }
 
             if (numBrains > 1) {

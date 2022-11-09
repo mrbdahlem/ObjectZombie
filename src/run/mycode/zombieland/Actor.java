@@ -65,6 +65,16 @@ abstract class Actor {
     }
 
     /**
+     *Move this actor to a new location
+     * @param newX the x coordinate of the actor's new location
+     * @param newY the y coordinate of the actor's new location
+     */
+    public void setPosition(int newX, int newY) {
+        this.x = newX;
+        this.y = newY;
+    }
+
+    /**
      * Get a reference to the world that the actor is located in
      * @return the world the actor is located in.
      */
