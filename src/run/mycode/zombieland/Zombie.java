@@ -51,6 +51,8 @@ class Zombie {
 
     public boolean hasWon() { return hasWon; }
 
+    public boolean hasWon(int ignored) { return hasWon; }
+
     class ZombieActor extends Actor {
 
         private final Zombie zombie;

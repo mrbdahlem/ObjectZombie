@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +76,7 @@ public class Scenario {
                 final Node initial = world.getElementsByTagName("initial").item(0);
                 loadState(z, initial, zombieClass);
 
-                final Objective o = new Objective();
+                final Objective o = new Objective(width, height, name);
                 final Node objective = world.getElementsByTagName("objective").item(0);
                 loadState(o, objective, zombieClass);
 
@@ -90,7 +89,7 @@ public class Scenario {
         return scenario;
     }
 
-    private static void loadState(World zl, Node stateNode, String zombieClass) {
+    private static void loadState(ZombieLand zl, Node stateNode, String zombieClass) {
         NodeList initialObjects = ((Element)stateNode).getElementsByTagName("object");
         for (int i = 0; i < initialObjects.getLength(); i++) {
             // Get the object description
@@ -102,28 +101,28 @@ public class Scenario {
             // Determine where the class instances are located
             NodeList locations = obj.getElementsByTagName("location");
             for (int j = 0; j < locations.getLength(); j++) {
-                Location loc = Location.from(locations.item(j), zl);
+                Location loc = Location.from(locations.item(j));
 
                 switch (className) {
                     case "Brain":
-                        brainAt(loc);
+                        new Brain(loc.x, loc.y, loc.count, zl);
                         break;
 
                     case "Fire":
-                        fireAt(loc);
+                        new Fire(loc.x, loc.y, zl);
                         break;
 
                     case "Wall":
-                        wallAt(loc);
+                        new Wall(loc.x, loc.y, zl);
                         break;
 
                     case "ZombieGoal":
-                        goalAt(loc);
+                        new ZombieGoal (loc.x, loc.y, zl);
                         break;
 
-//                    case "Bucket":
-//                        bucketAt(loc);
-//                        break;
+                    case "Bucket":
+                        new Bucket(loc.x, loc.y, zl);
+                        break;
 
                     case "MyZombie":
                     case "Zombie":
@@ -134,84 +133,31 @@ public class Scenario {
                             numBrains = Integer.parseInt(pos.getAttribute("brains"));
                         }
 
-                        zombieAt(zombieClass, loc, numBrains);
+                        zombieAt(zombieClass, numBrains, loc, zl);
                         break;
                 }
             }
         }
     }
 
-    private static Brain brainAt(Location loc) {
-        Brain brain = new Brain(loc.x, loc.y, loc.count, loc.world);
-
-        // Perform any method calls specified for this brain stack
-        makeCalls(brain, loc);
-
-        return brain;
-    }
-
-    @SuppressWarnings({"rawtypes"})
-    private static void makeCalls(Object instance, Location loc) {
-        if (loc.calls != null) {
-            for (String[] call : loc.calls) {
-                Class[] params = {int.class};
-                try {
-                    Method m = instance.getClass().getMethod(call[0], params);
-                    m.invoke(instance, Integer.parseInt(call[1]));
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    System.err.println("method call " + instance.getClass().getName() + "." + call[0] + " failed. " + e.getMessage());
-                }
-            }
-        }
-    }
-
-    private static Fire fireAt(Location loc) {
-        Fire fire = new Fire(loc.x, loc.y, loc.world);
-
-        // Perform any method calls specified for this fire
-        makeCalls(fire, loc);
-
-        return fire;
-    }
-
-    private static Wall wallAt(Location loc) {
-        return new Wall(loc.x, loc.y, loc.world);
-    }
-
-    private static ZombieGoal goalAt(Location loc) {
-        ZombieGoal goal = new ZombieGoal (loc.x, loc.y, loc.world);
-
-        // Perform any method calls specified for this goal
-        makeCalls(goal, loc);
-
-        return goal;
-    }
-
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Zombie zombieAt(String zombieClass, Location loc, int numBrains) {
+    private static void zombieAt(String zombieClass, int numBrains, Location loc,  ZombieLand world) {
         if (zombieClass.equals("Zombie")) {
             zombieClass = "run.mycode.zombieland.Zombie";
         }
-
-        Zombie z;
 
         try {
             ClassLoader cl = Scenario.class.getClassLoader();
 
             // Make sure the proper Zombie subclass is loaded into the Java runtime
             Class objClass = cl.loadClass(zombieClass);
-            // Create an instance of the class at this location
+            // Create an instance of the class at this location, in this world
             Constructor constructor = objClass.getDeclaredConstructor(int.class, int.class, int.class, int.class, World.class);
-            z = (Zombie) constructor.newInstance(loc.x, loc.y, loc.dir, numBrains, loc.world);
+            constructor.newInstance(loc.x, loc.y, loc.dir, numBrains, world);
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
                  ClassNotFoundException e) {
             throw new RuntimeException("Cannot make Zombie at (" + loc.x + "," + loc.y + ")", e);
         }
-
-        // Perform any method calls specified for this goal
-        makeCalls(z, loc);
-
-        return z;
     }
 
     private static class Location {
@@ -219,15 +165,9 @@ public class Scenario {
         int y;
         int dir;
         int count;
-        List<String[]> calls;
 
-        World world;
-
-
-        public static Location from(Node item, World zl) {
+        public static Location from(Node item) {
             Location loc = new Location();
-
-            loc.world = zl;
 
             Element pos = (Element) item;
 
@@ -246,21 +186,6 @@ public class Scenario {
                 loc.count = Integer.parseInt(pos.getAttribute("count"));
             }
 
-            NodeList callList = pos.getElementsByTagName("call");
-            loc.calls = null;
-            if (callList.getLength() > 0) {
-                loc.calls = new ArrayList<>();
-
-                for (int k = 0; k < callList.getLength(); k++) {
-                    Element method = ((Element) callList.item(k));
-                    String[] callSignature = new String[2];
-                    callSignature[0] = method.getAttribute("name");
-                    callSignature[1] = method.getAttribute("value");
-
-                    loc.calls.add(callSignature);
-                }
-            }
-
             return loc;
         }
     }
@@ -275,15 +200,14 @@ public class Scenario {
         }
     }
 
-    private static class Objective extends World {
-        public Objective() {
-            super();
+    private static class Objective extends ZombieLand {
+
+        public Objective(int width, int height, String name) {
+            super(width, height, name);
         }
 
         @Override
         public void act() { /* Do nothing */ }
 
-        @Override
-        public void animate() { /* Do nothing */ }
     }
 }
